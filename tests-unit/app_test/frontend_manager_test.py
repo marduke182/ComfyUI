@@ -147,7 +147,7 @@ def test_init_frontend_default_with_mocks():
 
     # Act
     with (
-        patch("app.frontend_management.check_frontend_version") as mock_check,
+        patch("app.frontend_management.check_comfy_packages_versions") as mock_check,
         patch.object(
             FrontendManager, "default_frontend_path", return_value="/mocked/path"
         ),
@@ -168,7 +168,7 @@ def test_init_frontend_fallback_on_error():
         patch.object(
             FrontendManager, "init_frontend_unsafe", side_effect=Exception("Test error")
         ),
-        patch("app.frontend_management.check_frontend_version") as mock_check,
+        patch("app.frontend_management.check_comfy_packages_versions") as mock_check,
         patch.object(
             FrontendManager, "default_frontend_path", return_value="/default/path"
         ),

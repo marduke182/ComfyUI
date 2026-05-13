@@ -167,15 +167,15 @@ class SaveAudio(IO.ComfyNode):
             ],
             hidden=[IO.Hidden.prompt, IO.Hidden.extra_pnginfo],
             is_output_node=True,
+            outputs=[IO.Audio.Output("audio")]
         )
 
     @classmethod
     def execute(cls, audio, filename_prefix="ComfyUI", format="flac") -> IO.NodeOutput:
         return IO.NodeOutput(
+            audio,
             ui=UI.AudioSaveHelper.get_save_audio_ui(audio, filename_prefix=filename_prefix, cls=cls, format=format)
         )
-
-    save_flac = execute  # TODO: remove
 
 
 class SaveAudioMP3(IO.ComfyNode):
@@ -194,17 +194,17 @@ class SaveAudioMP3(IO.ComfyNode):
             ],
             hidden=[IO.Hidden.prompt, IO.Hidden.extra_pnginfo],
             is_output_node=True,
+            outputs=[IO.Audio.Output("audio")]
         )
 
     @classmethod
     def execute(cls, audio, filename_prefix="ComfyUI", format="mp3", quality="128k") -> IO.NodeOutput:
         return IO.NodeOutput(
+            audio,
             ui=UI.AudioSaveHelper.get_save_audio_ui(
                 audio, filename_prefix=filename_prefix, cls=cls, format=format, quality=quality
             )
         )
-
-    save_mp3 = execute  # TODO: remove
 
 
 class SaveAudioOpus(IO.ComfyNode):
@@ -222,17 +222,17 @@ class SaveAudioOpus(IO.ComfyNode):
             ],
             hidden=[IO.Hidden.prompt, IO.Hidden.extra_pnginfo],
             is_output_node=True,
+            outputs=[IO.Audio.Output("audio")]
         )
 
     @classmethod
     def execute(cls, audio, filename_prefix="ComfyUI", format="opus", quality="V3") -> IO.NodeOutput:
         return IO.NodeOutput(
+            audio,
             ui=UI.AudioSaveHelper.get_save_audio_ui(
                 audio, filename_prefix=filename_prefix, cls=cls, format=format, quality=quality
             )
         )
-
-    save_opus = execute  # TODO: remove
 
 
 class PreviewAudio(IO.ComfyNode):
@@ -248,13 +248,12 @@ class PreviewAudio(IO.ComfyNode):
             ],
             hidden=[IO.Hidden.prompt, IO.Hidden.extra_pnginfo],
             is_output_node=True,
+            outputs=[IO.Audio.Output("audio")]
         )
 
     @classmethod
     def execute(cls, audio) -> IO.NodeOutput:
-        return IO.NodeOutput(ui=UI.PreviewAudio(audio, cls=cls))
-
-    save_flac = execute  # TODO: remove
+        return IO.NodeOutput(audio, ui=UI.PreviewAudio(audio, cls=cls))
 
 
 def f32_pcm(wav: torch.Tensor) -> torch.Tensor:

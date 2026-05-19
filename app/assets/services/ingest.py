@@ -414,8 +414,8 @@ def _backfill_image_dimensions_from_siblings(
         width = meta.get("width")
         height = meta.get("height")
         if (
-            not isinstance(width, int)
-            or not isinstance(height, int)
+            type(width) is not int
+            or type(height) is not int
             or width <= 0
             or height <= 0
         ):

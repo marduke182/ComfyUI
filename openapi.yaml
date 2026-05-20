@@ -1517,6 +1517,19 @@ paths:
           schema:
             type: integer
             default: 0
+          description: |
+            Deprecated in favor of `after` cursor pagination. When both are
+            supplied, `after` wins and `offset` is ignored.
+        - name: after
+          in: query
+          schema:
+            type: string
+          description: |
+            Opaque cursor for keyset pagination. Pass the `next_cursor` value
+            from a previous response to fetch the next page. Stable across
+            inserts/deletes between pages. Supported with `sort` values
+            `created_at`, `updated_at`, `name`, and `size`. Malformed or
+            unsupported cursors return 400 with `INVALID_CURSOR`.
         - name: include_tags
           in: query
           schema:
@@ -6479,6 +6492,11 @@ components:
           type: integer
         has_more:
           type: boolean
+        next_cursor:
+          type: string
+          description: |
+            Opaque cursor to fetch the next page. Pass back as the `after`
+            query parameter. Omitted when there are no more results.
 
     TagInfo:
       type: object

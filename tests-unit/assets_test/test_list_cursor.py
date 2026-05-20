@@ -109,6 +109,7 @@ def test_cursor_wins_over_offset(http: requests.Session, api_base: str, asset_fa
         },
         timeout=120,
     )
+    assert r.status_code == 200, r.text
     cursor = r.json()["next_cursor"]
     assert cursor is not None
 
@@ -144,6 +145,7 @@ def test_next_cursor_absent_when_no_more_results(http: requests.Session, api_bas
         },
         timeout=120,
     )
+    assert r.status_code == 200, r.text
     body = r.json()
     assert body["has_more"] is False
     assert "next_cursor" not in body
@@ -159,6 +161,7 @@ def test_cursor_pagination_first_page_mints_cursor(http: requests.Session, api_b
         params={"include_tags": "unit-tests,cursor-first-page", "sort": "name", "order": "asc", "limit": "2"},
         timeout=120,
     )
+    assert r.status_code == 200, r.text
     body = r.json()
     assert body["has_more"] is True
     assert body.get("next_cursor"), "first page must mint a cursor when more rows exist"
@@ -175,6 +178,7 @@ def test_cursor_no_spurious_cursor_when_page_size_equals_remainder(http: request
         params={"include_tags": "unit-tests,cursor-exact-multiple", "sort": "name", "order": "asc", "limit": "2"},
         timeout=120,
     )
+    assert r.status_code == 200, r.text
     cursor = r.json()["next_cursor"]
     assert cursor is not None
     # Page 2 — should exhaust the set with no cursor for a phantom page 3
@@ -183,6 +187,7 @@ def test_cursor_no_spurious_cursor_when_page_size_equals_remainder(http: request
         params={"include_tags": "unit-tests,cursor-exact-multiple", "sort": "name", "order": "asc", "limit": "2", "after": cursor},
         timeout=120,
     )
+    assert r2.status_code == 200, r2.text
     body = r2.json()
     assert len(body["assets"]) == 2
     assert body["has_more"] is False
@@ -245,6 +250,7 @@ def test_cursor_order_mismatch_returns_400(http: requests.Session, api_base: str
         },
         timeout=120,
     )
+    assert r.status_code == 200, r.text
     cursor = r.json()["next_cursor"]
     assert cursor is not None
 
@@ -321,5 +327,6 @@ def test_cursor_pagination_stable_after_delete(http: requests.Session, api_base:
         },
         timeout=120,
     )
+    assert r2.status_code == 200, r2.text
     body2 = r2.json()
     assert [a["name"] for a in body2["assets"]] == names[2:]

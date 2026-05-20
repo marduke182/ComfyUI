@@ -1518,8 +1518,11 @@ paths:
             type: integer
             default: 0
           description: |
-            Deprecated in favor of `after` cursor pagination. When both are
-            supplied, `after` wins and `offset` is ignored.
+            Offset-based pagination. Cursor pagination via `after` is preferred
+            for sequential walks (stable across concurrent inserts/deletes) but
+            `offset` remains fully supported for random access (jump-to-page
+            UIs, "showing items X–Y of N" displays). When both are supplied,
+            `after` wins and `offset` is ignored.
         - name: after
           in: query
           schema:

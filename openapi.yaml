@@ -1594,6 +1594,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ListAssetsResponse"
+        "400":
+          description: Malformed query or cursor (e.g. `INVALID_CURSOR`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetsApiError"
     post:
       operationId: createAsset
       tags: [assets]
@@ -6497,6 +6503,29 @@ components:
           description: |
             Opaque cursor to fetch the next page. Pass back as the `after`
             query parameter. Omitted when there are no more results.
+
+    AssetsApiError:
+      type: object
+      description: Error envelope returned by the assets API on 400 responses.
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: |
+                Machine-readable error code. `INVALID_CURSOR` is returned when the
+                `after` cursor is malformed, oversized, or its sort field does
+                not match the request's `sort`. `INVALID_QUERY` covers other
+                Pydantic validation failures.
+              enum: [INVALID_CURSOR, INVALID_QUERY]
+            message:
+              type: string
 
     TagInfo:
       type: object

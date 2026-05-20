@@ -32,9 +32,16 @@ class InvalidCursorError(ValueError):
 
 # Wire-format length caps. Cursors are user-controlled, so caps protect the
 # decode path from oversized allocations and downstream SQL predicates from
-# unbounded strings. Same numbers as cloud/common/pagination/cursor.go.
+# unbounded strings.
+#
+# MAX_CURSOR_VALUE_LENGTH is 512 (vs cloud's 256) to fit OSS's
+# `AssetReference.name` column max (String(512)) — otherwise a long-named
+# asset would mint a cursor the same server then refuses on the next request.
+# Cloud's data model has shorter names so its lower cap is fine there;
+# cross-runtime byte-identity is unaffected because no real cloud cursor ever
+# carries a value > 256.
 MAX_ENCODED_CURSOR_LENGTH = 1024
-MAX_CURSOR_VALUE_LENGTH = 256
+MAX_CURSOR_VALUE_LENGTH = 512
 MAX_CURSOR_ID_LENGTH = 128
 
 
@@ -122,7 +129,12 @@ def decode_cursor_time(payload: Optional[CursorPayload]) -> datetime:
         micros = int(payload.value)
     except ValueError as e:
         raise InvalidCursorError(f"value is not a valid timestamp: {e}") from e
-    return _unix_micros_to_datetime(micros)
+    try:
+        return _unix_micros_to_datetime(micros)
+    except (OverflowError, OSError, ValueError) as e:
+        # Crafted out-of-range microseconds (e.g. > datetime.MAX_YEAR) blow up
+        # in fromtimestamp / datetime construction. Map to 400, not 500.
+        raise InvalidCursorError(f"value is out of representable range: {e}") from e
 
 
 def decode_cursor_int(payload: Optional[CursorPayload]) -> int:

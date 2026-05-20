@@ -162,6 +162,40 @@ class TestEncodeAtCapsFits:
         assert payload.id == id
 
 
+class TestDatetimeOverflow:
+    """Crafted cursors with extreme micros must map to InvalidCursorError,
+    not OverflowError/OSError leaking as 500.
+    """
+
+    @pytest.mark.parametrize(
+        "micros_str",
+        [
+            "999999999999999999999",   # 10^21 µs — past datetime.MAX_YEAR by ~14 orders
+            "-999999999999999999999",  # symmetric negative — pre-epoch overflow
+        ],
+    )
+    def test_out_of_range_micros_rejected(self, micros_str):
+        encoded = encode_cursor("created_at", micros_str, "asset-x")
+        payload = decode_cursor(encoded, ALLOWED)
+        with pytest.raises(InvalidCursorError):
+            decode_cursor_time(payload)
+
+
+class TestEncoderDecoderSymmetry:
+    """The encoder must reject inputs the decoder rejects, or the same server
+    will mint a cursor it then 400s on the next request.
+    """
+
+    def test_long_name_within_cap_round_trips(self):
+        """OSS assets allow names up to 512 chars (`String(512)`); cursor must
+        handle that. Cloud's lower cap is acceptable on its side because the
+        cloud schema doesn't permit names that long."""
+        long_name = "n" * MAX_CURSOR_VALUE_LENGTH
+        encoded = encode_cursor("name", long_name, "asset-x")
+        payload = decode_cursor(encoded, ALLOWED)
+        assert payload.value == long_name
+
+
 class TestByteIdentityWithCloud:
     """Lock the wire format against drift from cloud's Go implementation.
 

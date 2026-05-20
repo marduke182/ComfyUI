@@ -279,7 +279,11 @@ def list_assets_page(
     """
     cursor_value: object | None = None
     cursor_id: str | None = None
-    use_cursor_mode = after is not None and sort in _CURSOR_SORT_FIELDS
+    # Mint next_cursor on every page where the sort is cursor-supported, not
+    # only when the request itself arrived with a cursor. Otherwise a first
+    # request (no `after`) returns next_cursor=None and the client can never
+    # enter cursor mode.
+    mint_cursor = sort in _CURSOR_SORT_FIELDS
 
     if after is not None:
         if sort not in _CURSOR_SORT_FIELDS:
@@ -293,6 +297,11 @@ def list_assets_page(
             )
         cursor_value, cursor_id = _resolve_cursor_value(payload), payload.id
 
+    # Over-fetch by one row so we can distinguish "exactly `limit` rows total
+    # remaining" from "more rows past this page" without a second query. Drop
+    # the sentinel before returning.
+    fetch_limit = limit + 1 if mint_cursor else limit
+
     with create_session() as session:
         refs, tag_map, total = list_references_page(
             session,
@@ -301,13 +310,21 @@ def list_assets_page(
             exclude_tags=exclude_tags,
             name_contains=name_contains,
             metadata_filter=metadata_filter,
-            limit=limit,
+            limit=fetch_limit,
             offset=offset,
             sort=sort,
             order=order,
             after_cursor_value=cursor_value,
             after_cursor_id=cursor_id,
         )
+
+        next_cursor: str | None = None
+        if mint_cursor and len(refs) > limit:
+            # There's at least one more row past this page — mint a cursor from
+            # the last row of the page (i.e. index `limit - 1`, since we
+            # over-fetched), and drop the sentinel.
+            next_cursor = _encode_next_cursor(refs[limit - 1], sort)
+            refs = refs[:limit]
 
         items: list[AssetSummaryData] = []
         for ref in refs:
@@ -318,10 +335,6 @@ def list_assets_page(
                     tags=tag_map.get(ref.id, []),
                 )
             )
-
-        next_cursor: str | None = None
-        if use_cursor_mode and len(refs) == limit:
-            next_cursor = _encode_next_cursor(refs[-1], sort)
 
         return ListAssetsResult(items=items, total=total, next_cursor=next_cursor)
 
@@ -337,15 +350,24 @@ def _resolve_cursor_value(payload: CursorPayload) -> object:
     return payload.value  # name, str-typed
 
 
-def _encode_next_cursor(ref, sort: str) -> str:
-    """Mint a cursor pointing at *ref* for the given sort dimension."""
+def _encode_next_cursor(ref, sort: str) -> str | None:
+    """Mint a cursor pointing at *ref* for the given sort dimension.
+
+    Returns None when the boundary row carries a NULL sort value (e.g. an asset
+    record whose size_bytes hasn't been backfilled). Continuing pagination
+    across a NULL boundary is undefined under keyset ordering — better to
+    truncate cleanly here than to mint a cursor that mis-positions.
+    """
     if sort == "name":
         return encode_cursor("name", ref.name, ref.id)
     if sort == "size":
-        size = ref.asset.size_bytes if ref.asset is not None else 0
-        return encode_cursor("size", str(size), ref.id)
+        if ref.asset is None or ref.asset.size_bytes is None:
+            return None
+        return encode_cursor("size", str(ref.asset.size_bytes), ref.id)
     # created_at / updated_at — DB datetimes are naive UTC; attach tz before encoding.
     value = ref.created_at if sort == "created_at" else ref.updated_at
+    if value is None:
+        return None
     return encode_cursor_from_time(sort, value.replace(tzinfo=timezone.utc), ref.id)
 
 

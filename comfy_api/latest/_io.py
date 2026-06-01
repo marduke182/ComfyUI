@@ -1369,36 +1369,7 @@ _DynamicInputFunc = Callable[
 ]
 DYNAMIC_INPUT_LOOKUP: dict[str, _DynamicInputFunc] = {}
 def register_dynamic_input_func(io_type: str, func: _DynamicInputFunc):
-    """Register a dynamic-input expansion callback.
-
-    Accepts both the current 6-argument form and the legacy 5-argument form
-    (without ``live_input_types``). Legacy callables are silently wrapped so
-    custom nodes that registered against the older signature continue to work.
-    """
-    try:
-        sig = inspect.signature(func)
-        param_count = sum(
-            1 for p in sig.parameters.values()
-            if p.kind in (inspect.Parameter.POSITIONAL_ONLY,
-                          inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                          inspect.Parameter.VAR_POSITIONAL)
-        )
-        # 5 = legacy signature (no live_input_types). If the callable has
-        # *args we can't be certain, so treat it as new-style.
-        has_varargs = any(p.kind is inspect.Parameter.VAR_POSITIONAL for p in sig.parameters.values())
-        is_legacy = (param_count == 5 and not has_varargs)
-    except (TypeError, ValueError):
-        # Builtins / C-implemented callables without introspectable signatures
-        # are assumed to be new-style.
-        is_legacy = False
-
-    if is_legacy:
-        _legacy = func
-        def _adapter(out_dict, live_inputs, value, input_type, curr_prefix, live_input_types=None):
-            _legacy(out_dict, live_inputs, value, input_type, curr_prefix)
-        DYNAMIC_INPUT_LOOKUP[io_type] = _adapter
-    else:
-        DYNAMIC_INPUT_LOOKUP[io_type] = func
+    DYNAMIC_INPUT_LOOKUP[io_type] = func
 
 def get_dynamic_input_func(io_type: str) -> _DynamicInputFunc:
     return DYNAMIC_INPUT_LOOKUP[io_type]

@@ -2121,6 +2121,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "ConditioningSetMask": "Conditioning (Set Mask)",
     "ControlNetApply": "Apply ControlNet (DEPRECATED)",
     "ControlNetApplyAdvanced": "Apply ControlNet",
+    "GLIGENTextBoxApply": "Apply GLIGEN Text Box",
     # Latent
     "VAEEncodeForInpaint": "VAE Encode (for Inpainting)",
     "SetLatentNoiseMask": "Set Latent Noise Mask",

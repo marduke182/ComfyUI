@@ -47,7 +47,7 @@ class HiDreamO1ReferenceImages(io.ComfyNode):
         return io.Schema(
             node_id="HiDreamO1ReferenceImages",
             display_name="HiDream-O1 Reference Images",
-            category="model/conditioning/image",
+            category="model/conditioning/hidream",
             description=(
                 "Attach 1-10 reference images to conditioning, one for edit instruction"
                 "or multiple for subject-driven personalization."

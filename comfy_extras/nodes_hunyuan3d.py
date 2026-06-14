@@ -35,7 +35,7 @@ class Hunyuan3Dv2Conditioning(IO.ComfyNode):
     def define_schema(cls):
         return IO.Schema(
             node_id="Hunyuan3Dv2Conditioning",
-            category="model/conditioning/3d_models",
+            category="model/conditioning/hunyuan3d",
             inputs=[
                 IO.ClipVisionOutput.Input("clip_vision_output"),
             ],
@@ -60,7 +60,7 @@ class Hunyuan3Dv2ConditioningMultiView(IO.ComfyNode):
     def define_schema(cls):
         return IO.Schema(
             node_id="Hunyuan3Dv2ConditioningMultiView",
-            category="model/conditioning/3d_models",
+            category="model/conditioning/hunyuan3d",
             inputs=[
                 IO.ClipVisionOutput.Input("front", optional=True),
                 IO.ClipVisionOutput.Input("left", optional=True),

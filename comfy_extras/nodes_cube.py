@@ -121,15 +121,15 @@ class VAEDecodeCube(IO.ComfyNode):
 
     @classmethod
     def execute(cls, vae, samples, resolution_base, chunk_size) -> IO.NodeOutput:
-        comfy.model_management.load_models_gpu([vae.patcher])
-        tok = vae.first_stage_model
-        ids = samples["samples"]
-        ids = ids.reshape(ids.shape[0], -1)[:, :tok.cfg_num_encoder_latents].long()
-        ids = ids.clamp(0, tok.cfg_num_codes - 1).to(vae.device)
+        # Managed decode: comfy.sd.VAE.decode handles model loading + device/dtype and
+        # returns the occupancy grid logits (B, gx, gy, gz). Marching cubes runs here.
+        grid = vae.decode(samples["samples"],
+                          vae_options={"resolution_base": resolution_base, "chunk_size": chunk_size})
 
-        latents = tok.decode_indices(ids)
-        grid, grid_size, bbox_size, bbox_min = tok.extract_geometry(
-            latents, resolution_base=resolution_base, chunk_size=chunk_size)
+        bounds = vae.first_stage_model.decode_bounds
+        bbox_min = np.array(bounds[0:3])
+        bbox_size = np.array(bounds[3:6]) - bbox_min
+        grid_size = list(grid.shape[1:])
 
         verts_list, faces_list = [], []
         for i in range(grid.shape[0]):

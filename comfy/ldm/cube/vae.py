@@ -288,6 +288,9 @@ def generate_dense_grid_points(bbox_min, bbox_max, resolution_base, indexing="ij
 class CubeShapeVAE(nn.Module):
     """Decode-only OneDAutoEncoder. Encoder weights load with strict=False (ignored)."""
 
+    # Fixed query bounds for the occupancy grid (upstream default).
+    decode_bounds = (-1.05, -1.05, -1.05, 1.05, 1.05, 1.05)
+
     def __init__(self, num_encoder_latents=1024, embed_dim=32, width=768, num_heads=12,
                  num_freqs=128, num_decoder_layers=24, num_codes=16384, out_dim=1, eps=1e-6,
                  dtype=None, device=None):
@@ -302,6 +305,19 @@ class CubeShapeVAE(nn.Module):
                                    eps=eps, dtype=dtype, device=device)
         self.occupancy_decoder = OneDOccupancyDecoder(self.embedder, out_dim, width, num_heads,
                                                       eps=eps, dtype=dtype, device=device)
+
+    @torch.no_grad()
+    def decode(self, samples, resolution_base=8.0, chunk_size=100_000, **kwargs):
+        """Token IDs -> occupancy grid logits. Entry point for comfy.sd.VAE.decode, which
+        manages model loading/device/dtype. `samples` arrive as (B, 1, num_tokens) in the
+        VAE working dtype on the load device. VAE.decode applies a trailing movedim(1, -1),
+        so pre-invert it here to hand the node grid logits as (B, gx, gy, gz)."""
+        ids = samples.reshape(samples.shape[0], -1)[:, :self.cfg_num_encoder_latents]
+        ids = ids.round().long().clamp(0, self.cfg_num_codes - 1)
+        latents = self.decode_indices(ids)
+        grid_logits, _, _, _ = self.extract_geometry(
+            latents, bounds=self.decode_bounds, resolution_base=resolution_base, chunk_size=chunk_size)
+        return grid_logits.movedim(-1, 1)
 
     @torch.no_grad()
     def decode_indices(self, shape_ids):

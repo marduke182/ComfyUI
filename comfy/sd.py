@@ -783,10 +783,6 @@ class VAE:
             elif "bottleneck.block.codebook.weight" in sd:
                 self.cube3d = True
                 self.latent_dim = 1
-                # VAEDecodeCube calls first_stage_model.decode_indices/extract_geometry
-                # directly (not through the patcher-managed forward), so the weights must
-                # be fully resident on-device. Disable dynamic streaming offload.
-                self.disable_offload = True
                 embed_dim = sd["bottleneck.block.codebook.weight"].shape[1]
                 num_codes = sd["bottleneck.block.codebook.weight"].shape[0]
                 width = sd["bottleneck.block.c_out.weight"].shape[0]
@@ -800,7 +796,13 @@ class VAE:
                     num_heads=num_heads, num_freqs=num_freqs, num_decoder_layers=num_decoder_layers,
                     num_codes=num_codes,
                 )
-                self.memory_used_decode = lambda shape, dtype: (1000 * shape[1] * 768) * model_management.dtype_size(dtype)
+                # Decode goes through the managed comfy.sd.VAE.decode path; the grid logits
+                # are float32 regardless of weight dtype, so keep process_output identity
+                # (the default clamps to [0, 1] in-place and would destroy the isosurface).
+                self.process_output = lambda image: image
+                self.process_input = lambda image: image
+                # shape is the token-ID latent (B, 1, num_tokens); size by num_tokens.
+                self.memory_used_decode = lambda shape, dtype: (1000 * shape[-1] * 768) * model_management.dtype_size(dtype)
                 self.working_dtypes = [torch.float32]
 
             elif "vocoder.backbone.channel_layers.0.0.bias" in sd: #Ace Step Audio

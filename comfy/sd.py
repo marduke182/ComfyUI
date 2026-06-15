@@ -783,6 +783,12 @@ class VAE:
             elif "bottleneck.block.codebook.weight" in sd:
                 self.cube3d = True
                 self.latent_dim = 1
+                # The VQ bottleneck (get_codebook/lookup_codebook) reads raw parameters
+                # outside any hooked forward, so the streaming-offload cast hooks can't
+                # relocate them; the model must be fully resident to decode. This is a
+                # correctness requirement, declared via the standard flag (like the audio
+                # VAEs) rather than managed manually in the node.
+                self.disable_offload = True
                 embed_dim = sd["bottleneck.block.codebook.weight"].shape[1]
                 num_codes = sd["bottleneck.block.codebook.weight"].shape[0]
                 width = sd["bottleneck.block.c_out.weight"].shape[0]

@@ -268,18 +268,10 @@ class SaveAudioAdvanced(IO.ComfyNode):
                     options=[
                         IO.DynamicCombo.Option("flac", []),
                         IO.DynamicCombo.Option("mp3", [
-                            IO.Combo.Input(
-                                "quality",
-                                options=["V0", "128k", "320k"],
-                                default="V0",
-                            ),
+                            IO.Combo.Input("quality", options=["V0", "128k", "320k"], default="V0"),
                         ]),
                         IO.DynamicCombo.Option("opus", [
-                            IO.Combo.Input(
-                                "quality",
-                                options=["64k", "96k", "128k", "192k", "320k"],
-                                default="128k",
-                            ),
+                            IO.Combo.Input("quality", options=["64k", "96k", "128k", "192k", "320k"], default="128k"),
                         ]),
                     ],
                     tooltip="The file format in which to save the audio.",

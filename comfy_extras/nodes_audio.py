@@ -152,105 +152,13 @@ class VAEDecodeAudioTiled(IO.ComfyNode):
         return IO.NodeOutput(vae_decode_audio(vae, samples, tile_size, overlap))
 
 
-class SaveAudio(IO.ComfyNode):
-    @classmethod
-    def define_schema(cls):
-        return IO.Schema(
-            node_id="SaveAudio",
-            search_aliases=["export flac"],
-            display_name="Save Audio (FLAC) (Deprecated)",
-            category="audio",
-            essentials_category="Audio",
-            inputs=[
-                IO.Audio.Input("audio"),
-                IO.String.Input("filename_prefix", default="audio/ComfyUI"),
-            ],
-            hidden=[IO.Hidden.prompt, IO.Hidden.extra_pnginfo],
-            is_output_node=True,
-            is_deprecated=True,
-        )
-
-    @classmethod
-    def execute(cls, audio, filename_prefix="ComfyUI", format="flac") -> IO.NodeOutput:
-        if audio is None:
-            raise ValueError("SaveAudio: input audio is None (source video may have no audio track).")
-        return IO.NodeOutput(
-            ui=UI.AudioSaveHelper.get_save_audio_ui(audio, filename_prefix=filename_prefix, cls=cls, format=format)
-        )
-
-    save_flac = execute  # TODO: remove
-
-
-class SaveAudioMP3(IO.ComfyNode):
-    @classmethod
-    def define_schema(cls):
-        return IO.Schema(
-            node_id="SaveAudioMP3",
-            search_aliases=["export mp3"],
-            display_name="Save Audio (MP3) (Deprecated)",
-            category="audio",
-            essentials_category="Audio",
-            inputs=[
-                IO.Audio.Input("audio"),
-                IO.String.Input("filename_prefix", default="audio/ComfyUI"),
-                IO.Combo.Input("quality", options=["V0", "128k", "320k"], default="V0"),
-            ],
-            hidden=[IO.Hidden.prompt, IO.Hidden.extra_pnginfo],
-            is_output_node=True,
-            is_deprecated=True,
-        )
-
-    @classmethod
-    def execute(cls, audio, filename_prefix="ComfyUI", format="mp3", quality="128k") -> IO.NodeOutput:
-        if audio is None:
-            raise ValueError("SaveAudioMP3: input audio is None (source video may have no audio track).")
-        return IO.NodeOutput(
-            ui=UI.AudioSaveHelper.get_save_audio_ui(
-                audio, filename_prefix=filename_prefix, cls=cls, format=format, quality=quality
-            )
-        )
-
-    save_mp3 = execute  # TODO: remove
-
-
-class SaveAudioOpus(IO.ComfyNode):
-    @classmethod
-    def define_schema(cls):
-        return IO.Schema(
-            node_id="SaveAudioOpus",
-            search_aliases=["export opus"],
-            display_name="Save Audio (Opus) (Deprecated)",
-            category="audio",
-            inputs=[
-                IO.Audio.Input("audio"),
-                IO.String.Input("filename_prefix", default="audio/ComfyUI"),
-                IO.Combo.Input("quality", options=["64k", "96k", "128k", "192k", "320k"], default="128k"),
-            ],
-            hidden=[IO.Hidden.prompt, IO.Hidden.extra_pnginfo],
-            is_output_node=True,
-            is_deprecated=True,
-        )
-
-    @classmethod
-    def execute(cls, audio, filename_prefix="ComfyUI", format="opus", quality="V3") -> IO.NodeOutput:
-        if audio is None:
-            raise ValueError("SaveAudioOpus: input audio is None (source video may have no audio track).")
-        return IO.NodeOutput(
-            ui=UI.AudioSaveHelper.get_save_audio_ui(
-                audio, filename_prefix=filename_prefix, cls=cls, format=format, quality=quality
-            )
-        )
-
-    save_opus = execute  # TODO: remove
-
-
 class SaveAudioAdvanced(IO.ComfyNode):
     @classmethod
     def define_schema(cls):
         return IO.Schema(
             node_id="SaveAudioAdvanced",
             search_aliases=["save audio", "export audio", "output audio", "write audio", "flac", "mp3", "opus"],
-            display_name="Save Audio (Advanced)",
+            display_name="Save Audio",
             description="Saves the input audio to your ComfyUI output directory.",
             category="audio",
             inputs=[
@@ -870,9 +778,6 @@ class AudioExtension(ComfyExtension):
             VAEEncodeAudio,
             VAEDecodeAudio,
             VAEDecodeAudioTiled,
-            SaveAudio,
-            SaveAudioMP3,
-            SaveAudioOpus,
             SaveAudioAdvanced,
             LoadAudio,
             PreviewAudio,

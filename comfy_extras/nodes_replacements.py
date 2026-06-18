@@ -5,14 +5,17 @@ api = ComfyAPI()
 
 async def register_replacements():
     """Register all built-in node replacements."""
-    await register_replacements_longeredge()
     await register_replacements_batchimages()
-    await register_replacements_upscaleimage()
+    await register_replacements_conditioningavg()
     await register_replacements_controlnet()
     await register_replacements_load3d()
+    await register_replacements_longeredge()
     await register_replacements_preview3d()
+    await register_replacements_saveaudio()
+    await register_replacements_saveaudiomp3()
+    await register_replacements_saveaudioopus()
     await register_replacements_svdimg2vid()
-    await register_replacements_conditioningavg()
+    await register_replacements_upscaleimage()
 
 async def register_replacements_longeredge():
     # No dynamic inputs here
@@ -90,6 +93,39 @@ async def register_replacements_conditioningavg():
     await api.node_replacement.register(io.NodeReplace(
             new_node_id="ConditioningAverage",
             old_node_id="ConditioningAverage ",
+        ))
+
+async def register_replacements_saveaudio():
+    # Replace deprecated node SaveAudio
+    await api.node_replacement.register(io.NodeReplace(
+            new_node_id="SaveAudioAdvanced",
+            old_node_id="SaveAudio",
+            input_mapping=[
+                {"new_id": "audio", "old_id": "audio"},
+                {"new_id": "format", "set_value": "flac"}
+            ]
+        ))
+
+async def register_replacements_saveaudiomp3():
+    # Replace deprecated node SaveAudioMP3
+    await api.node_replacement.register(io.NodeReplace(
+            new_node_id="SaveAudioAdvanced",
+            old_node_id="SaveAudioMP3",
+            input_mapping=[
+                {"new_id": "audio", "old_id": "audio"},
+                {"new_id": "format", "set_value": "mp3"}
+            ]
+        ))
+
+async def register_replacements_saveaudioopus():
+    # Replace deprecated node SaveAudioOpus
+    await api.node_replacement.register(io.NodeReplace(
+            new_node_id="SaveAudioAdvanced",
+            old_node_id="SaveAudioOpus",
+            input_mapping=[
+                {"new_id": "audio", "old_id": "audio"},
+                {"new_id": "format", "set_value": "opus"}
+            ]
         ))
 
 class NodeReplacementsExtension(ComfyExtension):

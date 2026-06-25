@@ -1,40 +1,32 @@
+import sys
 from typing_extensions import override
 
 from comfy_api.latest import ComfyExtension, io
 
-class SimpleSeedNode(io.ComfyNode):
+
+class SeedNode(io.ComfyNode):
     @classmethod
-    @override
-    def define_schema(cls) -> io.Schema:
+    def define_schema(cls):
         return io.Schema(
-            node_id="SimpleSeedNode",
-            display_name="Simple Seed",
-            category="utils/seed",
-            search_aliases=["seed", "random", "global seed", "master seed"],
+            node_id="SeedNode",
+            display_name="Seed",
+            search_aliases=["seed", "random"],
+            category="utilities",
             inputs=[
-                io.Int.Input(
-                    "seed",
-                    default=0,
-                    min=0,
-                    max=0xffffffffffffffff,
-                    control_after_generate=io.ControlAfterGenerate.fixed,
-                    tooltip="Master seed value supplied to all reachable nodes.",
-                ),
+                io.Int.Input("seed", min=0, max=sys.maxsize, control_after_generate=io.ControlAfterGenerate.fixed),
             ],
-            outputs=[
-                io.Int.Output(display_name="seed"),
-            ],
+            outputs=[io.Int.Output(display_name="seed")],
         )
 
     @classmethod
-    @override
-    def execute(cls, seed: int, **kwargs) -> io.NodeOutput:
+    def execute(cls, seed: int) -> io.NodeOutput:
         return io.NodeOutput(seed)
+
 
 class SeedExtension(ComfyExtension):
     @override
     async def get_node_list(self) -> list[type[io.ComfyNode]]:
-        return [SimpleSeedNode]
+        return [SeedNode]
 
 
 async def comfy_entrypoint() -> SeedExtension:

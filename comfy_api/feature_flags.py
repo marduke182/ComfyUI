@@ -32,7 +32,7 @@ CLI_FEATURE_FLAG_REGISTRY: dict[str, FeatureFlagInfo] = {
     },
     "show_version_updates": {
         "type": "bool",
-        "default": True,
+        "default": False,
         "description": "Default for whether the frontend shows new-release/version-update notifications (the user setting can still override it)",
     },
 }

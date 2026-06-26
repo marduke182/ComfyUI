@@ -1113,12 +1113,6 @@ def full_type_name(klass):
         return klass.__qualname__
     return module + '.' + klass.__qualname__
 
-def _v1_function_resolves(node):
-    """Whether node.FUNCTION names a callable on node (a class or an instance)."""
-    function_name = getattr(node, "FUNCTION", None)
-    return function_name is not None and callable(getattr(node, function_name, None))
-
-
 def node_not_executable_reason(class_def, class_type):
     """Return a human-readable reason the node cannot be executed, or None if it's fine.
 
@@ -1126,21 +1120,22 @@ def node_not_executable_reason(class_def, class_type):
     (e.g. a V1 ``FUNCTION = "invert"`` where the method is misspelled, or a V3 node
     missing its ``execute`` override). Running this during validation surfaces the
     problem before execution starts, instead of after upstream nodes have run.
+
+    Only the class is inspected; the node is never instantiated here, so a node's
+    ``__init__`` side effects cannot run (or fail) during validation.
     """
     try:
         if issubclass(class_def, _ComfyNodeInternal):
             # V3: validates that execute()/define_schema() overrides exist.
             class_def.VALIDATE_CLASS()
             return None
-        # V1: FUNCTION names the method to call. Check the class first (the common
-        # case); fall back to an instance, since the node is invoked on an instance
-        # and may define FUNCTION or its method in __init__.
-        if _v1_function_resolves(class_def) or _v1_function_resolves(class_def()):
-            return None
+        # V1: FUNCTION names the method to call; it must exist on the class.
         function_name = getattr(class_def, "FUNCTION", None)
         if function_name is None:
             return f"'{class_type}' does not define FUNCTION"
-        return f"'{class_type}' has no method '{function_name}' (declared in FUNCTION)"
+        if not callable(getattr(class_def, function_name, None)):
+            return f"'{class_type}' has no method '{function_name}' (declared in FUNCTION)"
+        return None
     except Exception as ex:
         return str(ex)
 

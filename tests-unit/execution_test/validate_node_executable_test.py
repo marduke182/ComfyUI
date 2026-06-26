@@ -39,8 +39,8 @@ class _TypoV1Node:
         return (None,)
 
 
-class _InstanceMethodV1Node:
-    """Defines its FUNCTION method on the instance, as the runtime resolves it."""
+class _SideEffectInitV1Node:
+    """Valid class-level method, but a constructor that must never run in validation."""
     @classmethod
     def INPUT_TYPES(cls):
         return {"required": {}}
@@ -51,7 +51,10 @@ class _InstanceMethodV1Node:
     CATEGORY = "Test"
 
     def __init__(self):
-        self.run = lambda: (None,)
+        raise RuntimeError("__init__ must not run during validation")
+
+    def run(self):
+        return (None,)
 
 
 def _v3_schema(node_id):
@@ -111,11 +114,11 @@ def test_typo_node_rejected_with_node_error():
     assert "invert" in node_errors["1"]["errors"][0]["details"]
 
 
-def test_instance_defined_method_not_false_positived():
-    """A node whose method is defined in __init__ runs fine and must not be blocked."""
-    _register("InstanceMethodV1Node", _InstanceMethodV1Node)
-    assert node_not_executable_reason(_InstanceMethodV1Node, "InstanceMethodV1Node") is None
-    valid, _, _, _ = _validate("InstanceMethodV1Node")
+def test_validation_does_not_instantiate_node():
+    """A valid node is not constructed during validation, so __init__ never runs."""
+    _register("SideEffectInitV1Node", _SideEffectInitV1Node)
+    assert node_not_executable_reason(_SideEffectInitV1Node, "SideEffectInitV1Node") is None
+    valid, _, _, _ = _validate("SideEffectInitV1Node")
     assert valid is True
 
 

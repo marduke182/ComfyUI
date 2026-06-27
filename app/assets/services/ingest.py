@@ -106,17 +106,28 @@ def _ingest_file_from_path(
                 backend_tags = get_path_derived_tags_from_path(locator)
             except ValueError:
                 backend_tags = []
-            norm = normalize_tags([*list(tags), *backend_tags])
-            if norm:
+            caller_tags = normalize_tags(tags)
+            backend_tags = normalize_tags(backend_tags)
+            all_tags = normalize_tags([*caller_tags, *backend_tags])
+            if all_tags:
                 if require_existing_tags:
-                    validate_tags_exist(session, norm)
-                add_tags_to_reference(
-                    session,
-                    reference_id=reference_id,
-                    tags=norm,
-                    origin=tag_origin,
-                    create_if_missing=not require_existing_tags,
-                )
+                    validate_tags_exist(session, all_tags)
+                if backend_tags:
+                    add_tags_to_reference(
+                        session,
+                        reference_id=reference_id,
+                        tags=backend_tags,
+                        origin="automatic",
+                        create_if_missing=not require_existing_tags,
+                    )
+                if caller_tags:
+                    add_tags_to_reference(
+                        session,
+                        reference_id=reference_id,
+                        tags=caller_tags,
+                        origin=tag_origin,
+                        create_if_missing=not require_existing_tags,
+                    )
 
             _update_metadata_with_filename(
                 session,

@@ -12,31 +12,19 @@ source-controlled assets, not this directory.
 This repo uses a **fork + upstream** git setup so local customizations stay separate from official
 ComfyUI releases:
 
-| Remote     | URL                                          | Purpose                              |
-|------------|----------------------------------------------|--------------------------------------|
-| `origin`   | `git@github.com:marduke182/ComfyUI.git`      | Your fork — push local changes here  |
-| `upstream` | `https://github.com/comfyanonymous/ComfyUI.git` | Official ComfyUI — pull updates from here |
+| Remote     | URL                                                  | Purpose                             |
+|------------|------------------------------------------------------|-------------------------------------|
+| `origin`   | `https://github.com/marduke182/ComfyUI.git`          | Your fork — commit and push here    |
+| `upstream` | `https://github.com/comfyanonymous/ComfyUI.git`      | Official ComfyUI — pull updates from here |
 
-### Branch conventions
+Everything lives on `master`. There are no feature branches or PRs — just commit directly and push.
 
-| Branch           | Tracks      | Purpose                                       |
-|------------------|-------------|-----------------------------------------------|
-| `master`         | upstream    | Mirrors official ComfyUI master; never commit local changes here |
-| `local/watchman` | origin      | All local customizations for the Watchman pipeline |
-
-### Typical workflow
+### Syncing upstream updates
 
 ```bash
-# Pull the latest official ComfyUI release into master
-git checkout master
-git pull upstream master
-
-# Merge upstream updates into your local branch
-git checkout local/watchman
-git merge master
-
-# Push your local changes to your fork
-git push origin local/watchman
+# Pull the latest official ComfyUI release and rebase your changes on top
+git pull --rebase upstream master
+git push origin master
 ```
 
 ---

@@ -174,6 +174,8 @@ def apply_overrides(rows: list[dict], overrides_csv: Path | None) -> int:
 def build_positive(row: dict, opts: argparse.Namespace) -> str:
     text = POS_TEMPLATE.format(label_en=row["label_en"].strip(),
                                tint_name=tint_name(row["tint_hex"]))
+    if opts.no_cute:
+        text = text.replace("friendly cute food icon, ", "")
     if opts.palette_hint:
         text += ", " + PALETTE_HINT
     if opts.pos_extra:
@@ -328,6 +330,8 @@ def parse_args() -> argparse.Namespace:
                    help="added to the per-icon seed; use 1, 2, ... to regenerate a suspect icon with --only")
     p.add_argument("--palette-hint", action="store_true",
                    help="append the brand-palette colour hint to the positive prompt (off by default: it leaks colours)")
+    p.add_argument("--no-cute", action="store_true",
+                   help='drop "friendly cute food icon" from the template (it invites mascot faces on some foods)')
     p.add_argument("--pos-extra", default="", help="text appended to the positive prompt")
     p.add_argument("--neg-extra", default="", help="text appended to the negative prompt")
     p.add_argument("--only", action="append", default=[], metavar="ICON", help="limit to these icon ids (repeatable)")

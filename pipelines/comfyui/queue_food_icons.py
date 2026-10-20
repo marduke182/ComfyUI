@@ -79,7 +79,8 @@ NEG_PROMPT = (
     "complex background, pattern, frame, border, "
     "plate, dish, circle, badge, decal, sticker, gloss, highlight, reflection, "
     "two straws, multiple items, "
-    "realistic, photograph, photography, detailed texture, realistic lighting, sliced, cut open"
+    "realistic, photograph, photography, detailed texture, realistic lighting, sliced, cut open, "
+    "live animal, animal face, hen, bird, pig, cow, feathers, beak, cutting board, wooden board"
 )
 
 # Category tints from brinco/branding/food-icons/README.md -> the exact {tint_name} wording.
@@ -87,7 +88,7 @@ TINT_NAMES = {
     "#D8F5F1": "pale teal",       # produce
     "#FFE4E1": "pale coral",      # meat
     "#ECE8FF": "pale violet",     # dairy
-    "#FFF1CC": "pale sunflower",  # pantry
+    "#FFF1CC": "pale butter yellow",  # pantry (README says "pale sunflower", which draws a flower)
     "#DDEFFA": "pale sky",        # drinks
     "#FDE9DA": "pale peach",      # other
 }

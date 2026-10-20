@@ -17,6 +17,8 @@ Behaviour:
   * one job at a time: queue -> poll /history -> fetch via /view -> write PNG
   * every PNG is re-encoded with Pillow so no ComfyUI prompt/workflow text chunks
     survive, then verified; --verify-clean DIR / --strip-dir DIR work on any folder
+  * --cutout additionally writes OUT/png/<icon>.png (object on transparent, trimmed,
+    re-centred) and OUT/png-preview/<icon>.png (composited on tint_hex)
   * one automatic retry per icon on any failure
   * prints a per-icon timing line and a final summary; exit code 1 if any failed
 
@@ -299,6 +301,11 @@ def generate_one(template: dict, row: dict, opts: argparse.Namespace, dest: Path
     img = wait_for_output(pid)
     dest.write_bytes(fetch_image(img))
     strip_png(dest)
+    if opts.cutout:
+        from icon_cutout import cutout, default_params  # same folder
+        icon = row["icon"].strip()
+        cutout(dest, opts.out / "png" / f"{icon}.png", opts.out / "png-preview" / f"{icon}.png",
+               row["tint_hex"].strip(), default_params(size=opts.size))
     return time.monotonic() - t0
 
 
@@ -326,6 +333,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--only", action="append", default=[], metavar="ICON", help="limit to these icon ids (repeatable)")
     p.add_argument("--limit", type=int, default=0, help="stop after N rows (0 = all)")
     p.add_argument("--force", action="store_true", help="regenerate even if the PNG exists")
+    p.add_argument("--cutout", action="store_true",
+                   help="also write transparent cutouts to OUT/png/ and tinted previews to OUT/png-preview/ "
+                        "(see icon_cutout.py; run it standalone to post-process existing renders)")
     p.add_argument("--dry-run", action="store_true", help="print prompts and seeds, do not queue")
     p.add_argument("--verify-clean", type=Path, metavar="DIR",
                    help="scan DIR for PNGs still carrying text chunks and exit (no generation)")

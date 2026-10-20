@@ -82,7 +82,17 @@ NEG_PROMPT = (
     "realistic, photograph, photography, detailed texture, realistic lighting, sliced, cut open"
 )
 
-# Brand palette (hue in degrees) used to turn tint_hex into a word SDXL understands.
+# Category tints from brinco/branding/food-icons/README.md -> the exact {tint_name} wording.
+TINT_NAMES = {
+    "#D8F5F1": "pale teal",       # produce
+    "#FFE4E1": "pale coral",      # meat
+    "#ECE8FF": "pale violet",     # dairy
+    "#FFF1CC": "pale sunflower",  # pantry
+    "#DDEFFA": "pale sky",        # drinks
+    "#FDE9DA": "pale peach",      # other
+}
+
+# Brand palette (hue in degrees) used to turn any other tint_hex into a word SDXL understands.
 PALETTE = {
     "coral": "#FF6B6B",
     "teal": "#2EC4B6",
@@ -104,7 +114,10 @@ def hex_to_rgb(h: str) -> tuple[float, float, float]:
 
 
 def tint_name(tint_hex: str) -> str:
-    """Nearest brand-palette name for a (usually pastel) hex tint, e.g. '#FFE3E3' -> 'coral pink'."""
+    """README tint name for a known category hex, else nearest brand-palette hue."""
+    known = TINT_NAMES.get("#" + tint_hex.strip().lstrip("#").upper())
+    if known:
+        return known
     try:
         r, g, b = hex_to_rgb(tint_hex)
     except ValueError:
@@ -126,9 +139,9 @@ def tint_name(tint_hex: str) -> str:
             "violet": "pastel lavender", "teal": "pastel mint teal"}.get(best, best)
 
 
-def seed_for(icon: str) -> int:
-    """Deterministic 32-bit seed from the icon name."""
-    return int(hashlib.sha256(icon.encode("utf-8")).hexdigest()[:8], 16)
+def seed_for(icon: str, offset: int = 0) -> int:
+    """Deterministic 32-bit seed from the icon name; offset picks an alternate seed for regenerations."""
+    return (int(hashlib.sha256(icon.encode("utf-8")).hexdigest()[:8], 16) + offset) & 0xFFFFFFFF
 
 
 def load_rows(csv_path: Path) -> list[dict]:
@@ -138,6 +151,21 @@ def load_rows(csv_path: Path) -> list[dict]:
     if not rows or not required.issubset(rows[0].keys()):
         sys.exit(f"CSV {csv_path} must have columns: icon,label_en,label_es,category,tint_hex")
     return [r for r in rows if r["icon"].strip()]
+
+
+def apply_overrides(rows: list[dict], overrides_csv: Path | None) -> int:
+    """Replace label_en for icons listed in a 2-column CSV (icon,label_en). Returns count applied."""
+    if not overrides_csv or not overrides_csv.exists():
+        return 0
+    with overrides_csv.open(newline="", encoding="utf-8-sig") as f:
+        overrides = {r["icon"].strip(): r["label_en"].strip() for r in csv.DictReader(f) if r.get("icon")}
+    applied = 0
+    for r in rows:
+        new = overrides.get(r["icon"].strip())
+        if new and new != r["label_en"].strip():
+            r["label_en"] = new
+            applied += 1
+    return applied
 
 
 def build_positive(row: dict, opts: argparse.Namespace) -> str:
@@ -161,7 +189,7 @@ def build_workflow(template: dict, row: dict, opts: argparse.Namespace) -> dict:
     wf[N_POS]["inputs"]["text"] = build_positive(row, opts)
     wf[N_NEG]["inputs"]["text"] = build_negative(opts)
     wf[N_LATENT]["inputs"].update(width=opts.size, height=opts.size, batch_size=1)
-    wf[N_SAMPLER]["inputs"].update(seed=seed_for(icon), steps=opts.steps, cfg=opts.cfg,
+    wf[N_SAMPLER]["inputs"].update(seed=seed_for(icon, opts.seed_offset), steps=opts.steps, cfg=opts.cfg,
                                    sampler_name=opts.sampler, scheduler=opts.scheduler,
                                    denoise=1.0)
     wf[N_SAVE]["inputs"]["filename_prefix"] = f"food-icons/{icon}"
@@ -286,6 +314,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--sampler", default=None)
     p.add_argument("--scheduler", default=None)
     p.add_argument("--size", type=int, default=DEFAULT_SIZE, help="square output size in px")
+    p.add_argument("--label-overrides", type=Path, metavar="CSV",
+                   help="2-column CSV (icon,label_en) whose labels replace the input CSV's for those icons")
+    p.add_argument("--seed-offset", type=int, default=0,
+                   help="added to the per-icon seed; use 1, 2, ... to regenerate a suspect icon with --only")
     p.add_argument("--palette-hint", action="store_true",
                    help="append the brand-palette colour hint to the positive prompt (off by default: it leaks colours)")
     p.add_argument("--pos-extra", default="", help="text appended to the positive prompt")
@@ -313,6 +345,9 @@ def main() -> None:
         sys.exit(1 if scan_folder(opts.verify_clean, strip=False) else 0)
     template = json.loads(WORKFLOW_PATH.read_text(encoding="utf-8"))
     rows = load_rows(opts.csv)
+    n_over = apply_overrides(rows, opts.label_overrides)
+    if n_over:
+        print(f"  applied {n_over} label overrides from {opts.label_overrides}")
     if opts.only:
         rows = [r for r in rows if r["icon"].strip() in opts.only]
     if opts.limit:
@@ -332,7 +367,7 @@ def main() -> None:
             print(f"  {icon:<24} skip    (exists)")
             continue
         if opts.dry_run:
-            print(f"  {icon:<24} seed {seed_for(icon):>10}  tint {tint_name(row['tint_hex'])!r}")
+            print(f"  {icon:<24} seed {seed_for(icon, opts.seed_offset):>10}  tint {tint_name(row['tint_hex'])!r}")
             print(f"      {build_positive(row, opts)}")
             continue
 
@@ -342,7 +377,7 @@ def main() -> None:
                 secs = generate_one(template, row, opts, dest)
                 times.append(secs)
                 done.append(icon)
-                print(f"  {icon:<24} ok      {secs:5.1f}s  seed {seed_for(icon)}"
+                print(f"  {icon:<24} ok      {secs:5.1f}s  seed {seed_for(icon, opts.seed_offset)}"
                       + ("  (retry)" if attempt == 2 else ""))
                 break
             except (urllib.error.URLError, RuntimeError, TimeoutError, OSError) as e:
